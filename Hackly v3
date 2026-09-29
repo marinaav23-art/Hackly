@@ -1,0 +1,471 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hackly 🤖</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #111827;
+        color: white;
+    }
+
+    .app {
+        max-width: 700px;
+        margin: auto;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    header {
+        background: #1f2937;
+        padding: 18px;
+        text-align: center;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    #chat {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+    }
+
+    .mensaje {
+        padding: 12px;
+        margin: 8px 0;
+        border-radius: 12px;
+        max-width: 85%;
+        line-height: 1.4;
+    }
+
+    .tu {
+        background: #2563eb;
+        margin-left: auto;
+    }
+
+    .hackly {
+        background: #374151;
+        margin-right: auto;
+    }
+
+    .controles {
+        display: flex;
+        gap: 8px;
+        padding: 10px;
+        background: #1f2937;
+    }
+
+    input {
+        flex: 1;
+        padding: 13px;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+
+    button {
+        border: none;
+        border-radius: 10px;
+        padding: 12px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .enviar {
+        background: #22c55e;
+    }
+
+    .micro {
+        background: #f59e0b;
+    }
+
+    .memoria {
+        background: #8b5cf6;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+    🤖 Hackly
+</header>
+
+<div id="chat"></div>
+
+<div class="controles">
+    <input id="entrada" placeholder="Escribe a Hackly...">
+    <button class="micro" onclick="hablar()">🎤</button>
+    <button class="enviar" onclick="enviar()">➤</button>
+    <button class="memoria" onclick="verMemoria()">🧠</button>
+</div>
+
+</div>
+
+<script>
+
+let memory = JSON.parse(
+    localStorage.getItem("hackly_memory") ||
+    '{"knowledge":{},"likes":[],"conversations":[]}'
+);
+
+if (!memory.knowledge) memory.knowledge = {};
+if (!memory.likes) memory.likes = [];
+if (!memory.conversations) memory.conversations = [];
+
+
+function save() {
+    localStorage.setItem(
+        "hackly_memory",
+        JSON.stringify(memory)
+    );
+}
+
+
+function agregarMensaje(texto, clase) {
+
+    const chat = document.getElementById("chat");
+
+    const mensaje = document.createElement("div");
+
+    mensaje.className = "mensaje " + clase;
+
+    mensaje.textContent = texto;
+
+    chat.appendChild(mensaje);
+
+    chat.scrollTop = chat.scrollHeight;
+}
+
+
+function responder(texto) {
+
+    const q = texto.toLowerCase().trim();
+
+
+    /* APRENDER: clave = valor */
+
+    if (q.startsWith("aprender:")) {
+
+        const contenido = texto.substring(9).trim();
+
+        if (contenido.includes("=")) {
+
+            const partes = contenido.split("=");
+
+            const clave = partes[0].trim().toLowerCase();
+
+            const valor = partes.slice(1).join("=").trim();
+
+            memory.knowledge[clave] = valor;
+
+            save();
+
+            return "¡Lo he aprendido! 🧠";
+        }
+
+        return "Usa: aprender: cosa = información";
+    }
+
+
+    /* MI ... FAVORITO ES ... */
+
+    let favorito = texto.match(
+        /^mi (.+?) favorito es (.+)$/i
+    );
+
+    if (favorito) {
+
+        const clave =
+            favorito[1].trim().toLowerCase()
+            + " favorito";
+
+        const valor =
+            favorito[2].trim();
+
+        memory.knowledge[clave] = valor;
+
+        save();
+
+        return "¡Lo recordaré! 🧠";
+    }
+
+
+    /* MI ... ES ... */
+
+    let miEs = texto.match(
+        /^mi (.+?) es (.+)$/i
+    );
+
+    if (miEs) {
+
+        const clave =
+            miEs[1].trim().toLowerCase();
+
+        const valor =
+            miEs[2].trim();
+
+        memory.knowledge[clave] = valor;
+
+        save();
+
+        return "¡Vale! Lo recordaré. 🧠";
+    }
+
+
+    /* ME GUSTA ... */
+
+    let gusta = texto.match(
+        /^me gusta (.+)$/i
+    );
+
+    if (gusta) {
+
+        const cosa = gusta[1].trim();
+
+        if (!memory.likes.includes(cosa)) {
+            memory.likes.push(cosa);
+        }
+
+        save();
+
+        return "¡Lo recordaré! Te gusta "
+            + cosa + ". ❤️";
+    }
+
+
+    /* ¿QUÉ ME GUSTA? */
+
+    if (
+        q.includes("qué me gusta") ||
+        q.includes("que me gusta")
+    ) {
+
+        if (memory.likes.length === 0) {
+            return "Todavía no sé qué te gusta. 🤔";
+        }
+
+        return "Recuerdo que te gusta: "
+            + memory.likes.join(", ")
+            + ". ❤️";
+    }
+
+
+    /* NOMBRE DE HACKLY */
+
+    if (
+        q.includes("tu nombre") ||
+        q.includes("cómo te llamas") ||
+        q.includes("como te llamas")
+    ) {
+
+        return "Me llamo Hackly 🤖.";
+    }
+
+
+    /* SALUDOS */
+
+    if (
+        q === "hola" ||
+        q.includes("hola hackly") ||
+        q === "buenas"
+    ) {
+
+        return "¡Hola! 😎 Soy Hackly.";
+    }
+
+
+    /* CÓMO ESTÁ */
+
+    if (
+        q.includes("cómo estás") ||
+        q.includes("como estas")
+    ) {
+
+        return "¡Estoy funcionando perfectamente! 🤖⚡";
+    }
+
+
+    /* QUÉ PUEDE HACER */
+
+    if (
+        q.includes("qué puedes hacer") ||
+        q.includes("que puedes hacer")
+    ) {
+
+        return "Puedo hablar contigo, aprender cosas y recordar información. 🧠🤖";
+    }
+
+
+    /* BUSCAR EN LA MEMORIA */
+
+    for (const clave in memory.knowledge) {
+
+        if (q.includes(clave.toLowerCase())) {
+
+            return memory.knowledge[clave];
+        }
+    }
+
+
+    return "Todavía no sé responder a eso 🤔. Puedes enseñármelo escribiendo: aprender: pregunta = respuesta";
+}
+
+
+function enviar() {
+
+    const entrada =
+        document.getElementById("entrada");
+
+    const texto =
+        entrada.value.trim();
+
+    if (!texto) return;
+
+
+    agregarMensaje(
+        "Tú: " + texto,
+        "tu"
+    );
+
+
+    memory.conversations.push({
+        usuario: texto,
+        fecha: new Date().toISOString()
+    });
+
+
+    const respuesta =
+        responder(texto);
+
+
+    agregarMensaje(
+        "Hackly: " + respuesta,
+        "hackly"
+    );
+
+
+    save();
+
+    entrada.value = "";
+
+    entrada.focus();
+}
+
+
+/* ENTER PARA ENVIAR */
+
+document
+.getElementById("entrada")
+.addEventListener("keydown", function(event) {
+
+    if (event.key === "Enter") {
+        enviar();
+    }
+
+});
+
+
+/* VER MEMORIA */
+
+function verMemoria() {
+
+    let texto = "🧠 MEMORIA DE HACKLY\n\n";
+
+
+    texto += "📚 Conocimientos:\n";
+
+    const claves =
+        Object.keys(memory.knowledge);
+
+    if (claves.length === 0) {
+
+        texto += "Ninguno todavía.\n";
+
+    } else {
+
+        claves.forEach(function(clave) {
+
+            texto +=
+                "• " +
+                clave +
+                " = " +
+                memory.knowledge[clave] +
+                "\n";
+        });
+    }
+
+
+    texto += "\n❤️ Cosas que te gustan:\n";
+
+    if (memory.likes.length === 0) {
+
+        texto += "Ninguna todavía.";
+
+    } else {
+
+        texto +=
+            memory.likes.join(", ");
+    }
+
+
+    alert(texto);
+}
+
+
+/* VOZ */
+
+function hablar() {
+
+    if (!("webkitSpeechRecognition" in window)) {
+
+        alert(
+            "Tu navegador no permite reconocimiento de voz aquí."
+        );
+
+        return;
+    }
+
+
+    const reconocimiento =
+        new webkitSpeechRecognition();
+
+    reconocimiento.lang = "es-ES";
+
+    reconocimiento.start();
+
+
+    reconocimiento.onresult =
+        function(event) {
+
+            const texto =
+                event.results[0][0].transcript;
+
+            document.getElementById("entrada").value =
+                texto;
+
+            enviar();
+        };
+}
+
+
+/* MENSAJE INICIAL */
+
+agregarMensaje(
+    "¡Hola! Soy Hackly 🤖. Puedes enseñarme cosas y las recordaré.",
+    "hackly"
+);
+
+</script>
+
+</body>
+</html>
+```
